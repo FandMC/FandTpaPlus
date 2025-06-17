@@ -1,0 +1,223 @@
+name: FandTpaPlus
+version: '1.0.0'
+main: cn.fandmc.fandtpaplus.Main
+api-version: '1.21'
+authors: ["20018"]
+description: 功能强大的传送、家、称号等基础功能插件，支持Folia
+website: https://github.com/FandMC/FandTpaPlus
+
+depend: []
+softdepend: []
+
+commands:
+  tpa:
+    description: 请求传送到指定玩家
+    usage: /<command> <玩家>
+    permission: fandtpaplus.command.tpa
+    aliases: []
+
+  tpahere:
+    description: 请求玩家传送到你这里
+    usage: /<command> <玩家>
+    permission: fandtpaplus.command.tpahere
+    aliases: []
+
+  tpaccept:
+    description: 接受传送请求
+    usage: /<command>
+    permission: fandtpaplus.command.tpaccept
+    aliases: [tpyes]
+
+  tpdeny:
+    description: 拒绝传送请求
+    usage: /<command>
+    permission: fandtpaplus.command.tpdeny
+    aliases: [tpno]
+
+  tpcancel:
+    description: 取消传送请求
+    usage: /<command>
+    permission: fandtpaplus.command.tpcancel
+    aliases: []
+
+  home:
+    description: 传送到家
+    usage: /<command> [家名]
+    permission: fandtpaplus.command.home
+    aliases: [h]
+
+  sethome:
+    description: 设置家
+    usage: /<command> <家名>
+    permission: fandtpaplus.command.sethome
+    aliases: []
+
+  delhome:
+    description: 删除家
+    usage: /<command> <家名>
+    permission: fandtpaplus.command.delhome
+    aliases: [deletehome, removehome]
+
+  back:
+    description: 返回上一个位置
+    usage: /<command>
+    permission: fandtpaplus.command.back
+    aliases: []
+
+  title:
+    description: 设置或移除称号
+    usage: /<command> <称号|remove>
+    permission: fandtpaplus.command.title
+    aliases: []
+
+  fandtpaplus:
+    description: FandTpaPlus主命令
+    usage: /<command> [reload|version|help]
+    permission: fandtpaplus.command.main
+    aliases: [ftp]
+
+permissions:
+  fandtpaplus.*:
+    description: 所有FandTpaPlus权限
+    default: op
+    children:
+      fandtpaplus.command.*: true
+      fandtpaplus.bypass.*: true
+      fandtpaplus.home.*: true
+      fandtpaplus.title.*: true
+      fandtpaplus.admin: true
+
+  fandtpaplus.command.*:
+    description: 所有命令权限
+    default: true
+    children:
+      fandtpaplus.command.tpa: true
+      fandtpaplus.command.tpahere: true
+      fandtpaplus.command.tpaccept: true
+      fandtpaplus.command.tpdeny: true
+      fandtpaplus.command.tpcancel: true
+      fandtpaplus.command.home: true
+      fandtpaplus.command.sethome: true
+      fandtpaplus.command.delhome: true
+      fandtpaplus.command.back: true
+      fandtpaplus.command.title: true
+      fandtpaplus.command.main: true
+
+  fandtpaplus.bypass.*:
+    description: 所有绕过限制权限
+    default: op
+    children:
+      fandtpaplus.bypass.cooldown: true
+      fandtpaplus.bypass.delay: true
+      fandtpaplus.bypass.warmup: true
+
+  fandtpaplus.home.*:
+    description: 所有家相关权限
+    default: true
+    children:
+      fandtpaplus.home.default: true
+      fandtpaplus.home.vip: false
+      fandtpaplus.home.admin: false
+      fandtpaplus.home.unlimited: false
+
+  fandtpaplus.title.*:
+    description: 所有称号相关权限
+    default: true
+    children:
+      fandtpaplus.title.use: true
+      fandtpaplus.title.color: false
+      fandtpaplus.title.special: false
+      fandtpaplus.title.admin: false
+
+  # 单独权限
+  fandtpaplus.command.tpa:
+    description: 使用/tpa命令
+    default: true
+
+  fandtpaplus.command.tpahere:
+    description: 使用/tpahere命令
+    default: true
+
+  fandtpaplus.command.tpaccept:
+    description: 使用/tpaccept命令
+    default: true
+
+  fandtpaplus.command.tpdeny:
+    description: 使用/tpdeny命令
+    default: true
+
+  fandtpaplus.command.tpcancel:
+    description: 使用/tpcancel命令
+    default: true
+
+  fandtpaplus.command.home:
+    description: 使用/home命令
+    default: true
+
+  fandtpaplus.command.sethome:
+    description: 使用/sethome命令
+    default: true
+
+  fandtpaplus.command.delhome:
+    description: 使用/delhome命令
+    default: true
+
+  fandtpaplus.command.back:
+    description: 使用/back命令
+    default: true
+
+  fandtpaplus.command.title:
+    description: 使用/title命令
+    default: true
+
+  fandtpaplus.command.main:
+    description: 使用主命令
+    default: true
+
+  fandtpaplus.admin:
+    description: 管理员权限
+    default: op
+
+  fandtpaplus.bypass.cooldown:
+    description: 绕过冷却时间
+    default: op
+
+  fandtpaplus.bypass.delay:
+    description: 绕过传送延迟
+    default: op
+
+  fandtpaplus.bypass.warmup:
+    description: 绕过预热时间
+    default: op
+
+  fandtpaplus.home.default:
+    description: 默认家数量
+    default: true
+
+  fandtpaplus.home.vip:
+    description: VIP家数量
+    default: false
+
+  fandtpaplus.home.admin:
+    description: 管理员家数量
+    default: op
+
+  fandtpaplus.home.unlimited:
+    description: 无限家数量
+    default: op
+
+  fandtpaplus.title.use:
+    description: 使用称号功能
+    default: true
+
+  fandtpaplus.title.color:
+    description: 使用彩色称号
+    default: false
+
+  fandtpaplus.title.special:
+    description: 使用特殊称号
+    default: false
+
+  fandtpaplus.title.admin:
+    description: 管理称号
+    default: op

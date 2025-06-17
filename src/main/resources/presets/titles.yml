@@ -1,0 +1,6 @@
+vip:
+  display: '&6[VIP]'
+  permission: fandtpaplus.title.vip
+mvp:
+  display: '&b[MVP]'
+  permission: fandtpaplus.title.mvp

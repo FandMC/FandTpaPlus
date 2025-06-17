@@ -1,0 +1,128 @@
+# FandTpaPlus 配置文件
+# 插件版本: 1.0.0
+# 作者: YourName
+
+# 配置文件版本（请勿修改）
+config-version: 1
+
+# 语言设置
+language: zh_CN
+
+# TPA设置
+tpa:
+  # 请求超时时间（秒）
+  timeout: 60
+  # 命令冷却时间（秒）
+  cooldown: 5
+  # 每个玩家最大待处理请求数
+  max-pending-requests: 5
+  # 是否允许跨世界传送
+  allow-cross-world: true
+  # 传送预热时间（秒）
+  warm-up: 3
+  # 移动时是否取消传送
+  cancel-on-move: true
+  # 受伤时是否取消传送
+  cancel-on-damage: true
+
+# Home设置
+home:
+  # 不同权限组的最大家数量
+  max-homes:
+    default: 3
+    vip: 5
+    admin: 10
+  # 传送延迟（秒）
+  teleport-delay: 3
+  # 移动时是否取消传送
+  cancel-on-move: true
+  # 受伤时是否取消传送
+  cancel-on-damage: true
+
+# Back设置
+back:
+  # 是否启用返回功能
+  enabled: true
+  # 命令冷却时间（秒）
+  cooldown: 10
+  # 死亡时是否保存位置
+  save-on-death: true
+  # 传送时是否保存位置
+  save-on-teleport: true
+
+# 称号设置
+title:
+  # 是否启用称号系统
+  enabled: true
+  # 最大称号长度
+  max-length: 16
+  # 是否允许使用颜色代码
+  allow-color-codes: true
+  # 屏蔽词列表
+  blocked-words:
+    - 倒闭
+
+# 计分板设置
+scoreboard:
+  # 是否启用计分板
+  enabled: true
+  # 更新间隔（刻，20刻=1秒）
+  update-interval: 20
+  # 计分板标题
+  title: "&6&lFandTpaPlus"
+  # 计分板内容
+  lines:
+    - "&7&m----------------"
+    - "&e玩家: &f%player%"
+    - "&e世界: &f%world%"
+    - "&e在线: &f%online%/%max%"
+    - "&e称号: &f%title%"
+    - "&e家: &f%homes%"
+    - "&eTPS: &f%tps%"
+    - "&7&m----------------"
+
+# Tab列表设置
+tab:
+  # 是否启用Tab列表自定义
+  enabled: true
+  # 更新间隔（刻）
+  update-interval: 100
+  # 头部内容
+  header:
+    - "&6&m--------------------"
+    - "&6&lFandTpaPlus"
+    - "&e欢迎来到服务器！"
+    - "&6&m--------------------"
+  # 尾部内容
+  footer:
+    - "&6&m--------------------"
+    - "&7在线玩家: &f%online%/%max%"
+    - "&7TPS: &f%tps%"
+    - "&6&m--------------------"
+  # 玩家名称格式
+  player-format: "%title% &f%player%"
+
+# 更新检查器设置
+update-checker:
+  # 是否启用更新检查
+  enabled: true
+  # 是否自动下载更新
+  auto-update: false
+  # 检查间隔（秒）
+  check-interval: 3600
+  # 是否通知OP
+  notify-ops: true
+
+# 性能设置
+performance:
+  # 是否使用异步传送
+  async-teleport: true
+  # 缓存持续时间（秒）
+  cache-duration: 300
+  # 最大并发操作数
+  max-concurrent-operations: 10
+
+# 调试设置
+debug:
+  # 是否启用调试模式
+  enabled: false

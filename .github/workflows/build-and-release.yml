@@ -1,0 +1,261 @@
+name: FandTpaPlus CI/CD
+
+on:
+  push:
+    branches: [ "master", "main" ]
+    tags:
+      - 'v*.*.*'
+  pull_request:
+    branches: [ "master", "main" ]
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: '发布类型'
+        required: true
+        default: 'release'
+        type: choice
+        options:
+          - release
+          - pre-release
+          - draft
+
+permissions:
+  contents: write
+  actions: read
+  packages: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    outputs:
+      version: ${{ steps.extract-version.outputs.version }}
+      jar-name: ${{ steps.build-info.outputs.jar-name }}
+      should-release: ${{ steps.check-release.outputs.should-release }}
+    
+    steps:
+      - name: 📥 检出代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🔍 提取版本信息
+        id: extract-version
+        run: |
+          # 从 build.gradle.kts 提取版本
+          VERSION=$(grep -E "^version\s*=\s*" build.gradle.kts | sed 's/version\s*=\s*"\(.*\)"/\1/')
+          
+          # 如果是快照版本，添加构建号
+          if [[ "$VERSION" == *"-SNAPSHOT" ]]; then
+            BUILD_NUMBER="${GITHUB_RUN_NUMBER}"
+            FULL_VERSION="${VERSION}-build.${BUILD_NUMBER}"
+          else
+            FULL_VERSION="$VERSION"
+          fi
+          
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "full-version=$FULL_VERSION" >> $GITHUB_OUTPUT
+          echo "::notice::插件版本: $VERSION (完整版本: $FULL_VERSION)"
+
+      - name: ☕ 设置 JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'gradle'
+
+      - name: 🔧 设置 Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: wrapper
+
+      - name: 🏗️ 构建项目
+        run: |
+          chmod +x gradlew
+          ./gradlew clean build --no-daemon --stacktrace
+
+      - name: 📦 准备构建产物
+        id: build-info
+        run: |
+          # 查找生成的 JAR 文件
+          JAR_FILE=$(find build/libs -name "FandTpaPlus-*.jar" -not -name "*-sources.jar" -not -name "*-javadoc.jar" | head -1)
+          
+          if [ -z "$JAR_FILE" ]; then
+            echo "::error::未找到构建产物!"
+            exit 1
+          fi
+          
+          # 重命名为更清晰的名称
+          VERSION="${{ steps.extract-version.outputs.version }}"
+          if [[ "$VERSION" == *"-SNAPSHOT" ]]; then
+            NEW_NAME="FandTpaPlus-${{ steps.extract-version.outputs.full-version }}.jar"
+          else
+            NEW_NAME="FandTpaPlus-${VERSION}.jar"
+          fi
+          
+          cp "$JAR_FILE" "$NEW_NAME"
+          
+          echo "jar-name=$NEW_NAME" >> $GITHUB_OUTPUT
+          echo "::notice::构建产物: $NEW_NAME (大小: $(ls -lh $NEW_NAME | awk '{print $5}'))"
+
+      - name: 🧪 运行测试
+        run: ./gradlew test --no-daemon
+        continue-on-error: true
+
+      - name: 📊 生成测试报告
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: JUnit 测试报告
+          path: build/test-results/test/*.xml
+          reporter: java-junit
+          fail-on-error: false
+
+      - name: 💾 上传构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: FandTpaPlus-${{ steps.extract-version.outputs.full-version }}
+          path: ${{ steps.build-info.outputs.jar-name }}
+          retention-days: 30
+
+      - name: 🏷️ 检查是否需要发布
+        id: check-release
+        run: |
+          # 检查是否应该创建发布
+          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == refs/tags/v* ]]; then
+            echo "should-release=true" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "should-release=true" >> $GITHUB_OUTPUT
+          else
+            echo "should-release=false" >> $GITHUB_OUTPUT
+          fi
+
+  release:
+    needs: build
+    if: needs.build.outputs.should-release == 'true'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 检出代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 💾 下载构建产物
+        uses: actions/download-artifact@v4
+        with:
+          name: FandTpaPlus-${{ needs.build.outputs.version }}
+
+      - name: 📝 生成更新日志
+        id: changelog
+        run: |
+          # 获取最新的标签
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          
+          if [ -z "$LATEST_TAG" ]; then
+            # 如果没有标签，获取所有提交
+            COMMITS=$(git log --pretty=format:"- %s (%h)" --no-merges)
+          else
+            # 获取自上个标签以来的提交
+            COMMITS=$(git log ${LATEST_TAG}..HEAD --pretty=format:"- %s (%h)" --no-merges)
+          fi
+          
+          # 生成更新日志
+          cat > RELEASE_NOTES.md << EOF
+          ## 🎉 FandTpaPlus ${{ needs.build.outputs.version }}
+          
+          ### 📅 发布日期
+          $(date -u '+%Y-%m-%d %H:%M:%S UTC')
+          
+          ### ✨ 主要特性
+          - 完整的TPA传送系统
+          - 多家(Home)支持
+          - 返回(Back)功能
+          - 称号系统
+          - 计分板和Tab列表
+          - 完全支持Folia
+          - 自动更新检查
+          
+          ### 📝 更新内容
+          ${COMMITS}
+          
+          ### 📦 下载
+          - **文件名**: \`${{ needs.build.outputs.jar-name }}\`
+          - **支持版本**: Paper/Spigot/Folia 1.21.4+
+          - **Java版本**: 21+
+          
+          ### 🚀 安装说明
+          1. 下载 \`${{ needs.build.outputs.jar-name }}\`
+          2. 将文件放入服务器的 \`plugins\` 目录
+          3. 重启服务器
+          4. 编辑 \`plugins/FandTpaPlus/config.yml\` 进行配置
+          
+          ### 📖 文档
+          - [命令列表](https://github.com/${{ github.repository }}/wiki/Commands)
+          - [权限节点](https://github.com/${{ github.repository }}/wiki/Permissions)
+          - [配置文件](https://github.com/${{ github.repository }}/wiki/Configuration)
+          
+          ### 🐛 问题反馈
+          如果遇到任何问题，请在 [Issues](https://github.com/${{ github.repository }}/issues) 页面反馈。
+          EOF
+          
+          echo "notes_file=RELEASE_NOTES.md" >> $GITHUB_OUTPUT
+
+      - name: 🏷️ 确定发布类型
+        id: release-type
+        run: |
+          VERSION="${{ needs.build.outputs.version }}"
+          
+          # 根据版本号确定发布类型
+          if [[ "$VERSION" == *"-SNAPSHOT"* ]]; then
+            echo "prerelease=true" >> $GITHUB_OUTPUT
+            echo "draft=false" >> $GITHUB_OUTPUT
+            echo "tag=dev-${{ needs.build.outputs.version }}" >> $GITHUB_OUTPUT
+          elif [[ "$VERSION" == *"-beta"* ]] || [[ "$VERSION" == *"-alpha"* ]]; then
+            echo "prerelease=true" >> $GITHUB_OUTPUT
+            echo "draft=false" >> $GITHUB_OUTPUT
+            echo "tag=v${{ needs.build.outputs.version }}" >> $GITHUB_OUTPUT
+          else
+            # 正式版本
+            if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+              # 手动触发时使用输入的发布类型
+              case "${{ github.event.inputs.release_type }}" in
+                "pre-release")
+                  echo "prerelease=true" >> $GITHUB_OUTPUT
+                  echo "draft=false" >> $GITHUB_OUTPUT
+                  ;;
+                "draft")
+                  echo "prerelease=false" >> $GITHUB_OUTPUT
+                  echo "draft=true" >> $GITHUB_OUTPUT
+                  ;;
+                *)
+                  echo "prerelease=false" >> $GITHUB_OUTPUT
+                  echo "draft=false" >> $GITHUB_OUTPUT
+                  ;;
+              esac
+            else
+              echo "prerelease=false" >> $GITHUB_OUTPUT
+              echo "draft=false" >> $GITHUB_OUTPUT
+            fi
+            echo "tag=v${{ needs.build.outputs.version }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 🚀 创建 GitHub Release
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          files: |
+            ${{ needs.build.outputs.jar-name }}
+          tag_name: ${{ steps.release-type.outputs.tag }}
+          name: "FandTpaPlus ${{ needs.build.outputs.version }}"
+          body_path: ${{ steps.changelog.outputs.notes_file }}
+          prerelease: ${{ steps.release-type.outputs.prerelease }}
+          draft: ${{ steps.release-type.outputs.draft }}
+          generate_release_notes: false
+
+      - name: 📢 发布通知
+        if: success()
+        run: |
+          echo "::notice::🎉 成功发布 FandTpaPlus ${{ needs.build.outputs.version }}!"
+          echo "::notice::📦 下载地址: https://github.com/${{ github.repository }}/releases/tag/${{ steps.release-type.outputs.tag }}"
